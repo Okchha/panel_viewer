@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Draggable Panels</title>
+  <title>Draggable Panels with Vertices</title>
   <style>
     .panel {
       position: absolute;
@@ -11,12 +11,15 @@
       background-color: #f0f0f0;
       display: none;
     }
-    .corner {
+    .corner, .vertex {
       width: 10px;
       height: 10px;
       background-color: red;
       position: absolute;
       cursor: pointer;
+    }
+    .vertex {
+      background-color: blue;
     }
     .corner.tl { top: -5px; left: -5px; cursor: nwse-resize; }
     .corner.tr { top: -5px; right: -5px; cursor: nesw-resize; }
@@ -24,7 +27,7 @@
     .corner.br { bottom: -5px; right: -5px; cursor: nwse-resize; }
   </style>
 </head>
-<body between panels -->
+<body>
   <div style="margin-bottom: 20px;">
     <button onclick="showPanel('panel1')">Panel 1</button>
     <button onclick="showPanel('panel2')">Panel 2</button>
@@ -58,6 +61,7 @@
   <script>
     const panels = document.querySelectorAll('.panel');
     let currentCorner = null;
+    let currentVertex = null;
     let currentPanel = null;
 
     panels.forEach(panel => {
@@ -69,6 +73,12 @@
           document.addEventListener('mousemove', resizePanel);
           document.addEventListener('mouseup', stopResize);
         });
+      });
+
+      panel.addEventListener('click', (e) => {
+        if (e.target === panel) {
+          addVertex(panel, e.clientX, e.clientY);
+        }
       });
     });
 
@@ -101,16 +111,49 @@
       currentPanel = null;
     }
 
+    function addVertex(panel, x, y) {
+      const vertex = document.createElement('div');
+      vertex.classList.add('vertex');
+      vertex.style.left = x - panel.getBoundingClientRect().left - 5 + 'px';
+      vertex.style.top = y - panel.getBoundingClientRect().top - 5 + 'px';
+      panel.appendChild(vertex);
+
+      vertex.addEventListener('mousedown', (e) => {
+        currentVertex = e.target;
+        currentPanel = panel;
+        document.addEventListener('mousemove', moveVertex);
+        document.addEventListener('mouseup', stopMoveVertex);
+      });
+    }
+
+    function moveVertex(e) {
+      if (!currentVertex || !currentPanel) return;
+      currentVertex.style.left = e.clientX - currentPanel.getBoundingClientRect().left - 5 + 'px';
+      currentVertex.style.top = e.clientY - currentPanel.getBoundingClientRect().top - 5 + 'px';
+    }
+
+    function stopMoveVertex() {
+      document.removeEventListener('mousemove', moveVertex);
+      document.removeEventListener('mouseup', stopMoveVertex);
+      currentVertex = null;
+      currentPanel = null;
+    }
+
     function saveShapes() {
       const shapes = [];
       panels.forEach(panel => {
         const rect = panel.getBoundingClientRect();
+        const vertices = Array.from(panel.querySelectorAll('.vertex')).map(vertex => ({
+          left: vertex.style.left,
+          top: vertex.style.top
+        }));
         shapes.push({
           id: panel.id,
           width: rect.width,
           height: rect.height,
           top: rect.top,
-          left: rect.left
+          left: rect.left,
+          vertices
         });
       });
       localStorage.setItem('panelShapes', JSON.stringify(shapes));
@@ -127,19 +170,21 @@
             panel.style.height = shape.height + 'px';
             panel.style.top = shape.top + 'px';
             panel.style.left = shape.left + 'px';
+            shape.vertices.forEach(vertexData => {
+              addVertex(panel,
+                parseInt(vertexData.left) + panel.getBoundingClientRect().left + 5,
+                parseInt(vertexData.top) + panel.getBoundingClientRect().top + 5
+              );
+            });
           }
         });
       }
     }
 
     function showPanel(panelId) {
-      panels.forEach(panel => {
-        panel.style.display = 'none';
-      });
+      panels.forEach(panel => panel.style.display = 'none');
       const panel = document.getElementById(panelId);
-      if (panel) {
-        panel.style.display = 'block';
-      }
+      if (panel) panel.style.display = 'block';
     }
 
     window.onload = () => {
