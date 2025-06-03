@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Draggable Panels</title>
+  <style>
+    .panel {
+      position: absolute;
+      border: 2px solid #000;
+      background-color: #f0f0f0;
+      display: none;
+    }
+    .corner {
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      position: absolute;
+      cursor: pointer;
+    }
+    .corner.tl { top: -5px; left: -5px; cursor: nwse-resize; }
+    .corner.tr { top: -5px; right: -5px; cursor: nesw-resize; }
+    .corner.bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
+    .corner.br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+  </style>
+</head>
+<body between panels -->
+  <div style="margin-bottom: 20px;">
+    <button onclick="showPanel('panel1')">Panel 1</button>
+    <button onclick="showPanel('panel2')">Panel 2</button>
+    <button onclick="showPanel('panel3')">Panel 3</button>
+    <button onclick="showPanel('panel4')">Panel 4</button>
+    <button onclick="showPanel('panel5')">Panel 5</button>
+    <button onclick="showPanel('panel6')">Panel 6</button>
+    <button onclick="saveShapes()">Save Shapes</button>
+  </div>
+
+  <!-- Panels -->
+  <div id="panel1" class="panel" style="width: 300px; height: 600px; top: 50px; left: 50px;">
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  </div>
+  <div id="panel2" class="panel" style="width: 300px; height: 600px; top: 50px; left: 50px;">
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  </div>
+  <div id="panel3" class="panel" style="width: 300px; height: 600px; top: 50px; left: 50px;">
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  </div>
+  <div id="panel4" class="panel" style="width: 300px; height: 500px; top: 150px; left: 50px;">
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  </div>
+  <div id="panel5" class="panel" style="width: 300px; height: 600px; top: 50px; left: 50px;">
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  </div>
+  <div id="panel6" class="panel" style="width: 300px; height: 600px; top: 50px; left: 50px;">
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  </div>
+
+  <script>
+    const panels = document.querySelectorAll('.panel');
+    let currentCorner = null;
+    let currentPanel = null;
+
+    panels.forEach(panel => {
+      const corners = panel.querySelectorAll('.corner');
+      corners.forEach(corner => {
+        corner.addEventListener('mousedown', (e) => {
+          currentCorner = e.target;
+          currentPanel = panel;
+          document.addEventListener('mousemove', resizePanel);
+          document.addEventListener('mouseup', stopResize);
+        });
+      });
+    });
+
+    function resizePanel(e) {
+      if (!currentCorner || !currentPanel) return;
+      const rect = currentPanel.getBoundingClientRect();
+      if (currentCorner.classList.contains('tl')) {
+        currentPanel.style.width = rect.right - e.clientX + 'px';
+        currentPanel.style.height = rect.bottom - e.clientY + 'px';
+        currentPanel.style.left = e.clientX + 'px';
+        currentPanel.style.top = e.clientY + 'px';
+      } else if (currentCorner.classList.contains('tr')) {
+        currentPanel.style.width = e.clientX - rect.left + 'px';
+        currentPanel.style.height = rect.bottom - e.clientY + 'px';
+        currentPanel.style.top = e.clientY + 'px';
+      } else if (currentCorner.classList.contains('bl')) {
+        currentPanel.style.width = rect.right - e.clientX + 'px';
+        currentPanel.style.height = e.clientY - rect.top + 'px';
+        currentPanel.style.left = e.clientX + 'px';
+      } else if (currentCorner.classList.contains('br')) {
+        currentPanel.style.width = e.clientX - rect.left + 'px';
+        currentPanel.style.height = e.clientY - rect.top + 'px';
+      }
+    }
+
+    function stopResize() {
+      document.removeEventListener('mousemove', resizePanel);
+      document.removeEventListener('mouseup', stopResize);
+      currentCorner = null;
+      currentPanel = null;
+    }
+
+    function saveShapes() {
+      const shapes = [];
+      panels.forEach(panel => {
+        const rect = panel.getBoundingClientRect();
+        shapes.push({
+          id: panel.id,
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          left: rect.left
+        });
+      });
+      localStorage.setItem('panelShapes', JSON.stringify(shapes));
+      alert('Shapes saved!');
+    }
+
+    function loadShapes() {
+      const shapes = JSON.parse(localStorage.getItem('panelShapes'));
+      if (shapes) {
+        shapes.forEach(shape => {
+          const panel = document.getElementById(shape.id);
+          if (panel) {
+            panel.style.width = shape.width + 'px';
+            panel.style.height = shape.height + 'px';
+            panel.style.top = shape.top + 'px';
+            panel.style.left = shape.left + 'px';
+          }
+        });
+      }
+    }
+
+    function showPanel(panelId) {
+      panels.forEach(panel => {
+        panel.style.display = 'none';
+      });
+      const panel = document.getElementById(panelId);
+      if (panel) {
+        panel.style.display = 'block';
+      }
+    }
+
+    window.onload = () => {
+      loadShapes();
+      showPanel('panel1');
+    };
+  </script>
+</body>
+</html>
